@@ -67,6 +67,7 @@ To use the script, you'll need to configure it with your server's specific detai
 - `$discordSecret`: The secret token for your Discord bot, required if `$enableDiscord` is `"true"`.
 - `$autoprocess`: Enables the script to automatically perform restarts and updates based on a schedule (`"true"` or `"false"`).
 - `$restartTime`: The time in hours when the server should automatically reboot (e.g., `"8"` for every 8 hours).
+- `$restartSpecificTime`: 24-hour format string to reboot at a specific time daily. Overrides $restartTime. Ex. 13:30 would be 1:30 PM
 - `$steamID`: The SteamID to ban when using the script for ban management.
 - `$timeSpan`: The duration in minutes for a temporary ban. For permanent bans, you may need to set this to a very high value.
 - `$banreason`: The reason for the ban, which will be logged in the ban management system.
