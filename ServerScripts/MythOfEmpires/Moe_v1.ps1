@@ -50,6 +50,7 @@ Param (
     $discordSecret = "",        # Required for Discord Functions
     $autoprocess = "true",      # Enables loop for auto-restarts and updates
     $restartTime = "8",         # Time in Hours to reboot the server.
+    $restartSpecificTime = "",  # Restart daily at specific time. 24-hour format HH:mm 
     ## BANNING PARAMETERS
     $steamID = "",              # SteamID to Ban
     $timeSpan = "",             # Time in Minutes to Ban for
@@ -670,7 +671,7 @@ function StartCluster {
 "@
         Foreach ($key in $ServerConfig["CustomServerConfig"].Keys) {
             $value = $serverConfig["CustomServerConfig"][$key]
-            $customArguments += "-$key=$value "
+            $customArguments += "-$($key)=$($value) "
         }
     }
 
@@ -704,6 +705,13 @@ function StartCluster {
             if ($($serverConfig["BaseServerConfig"]["NoticeSelfEnable"]) -eq "1") {
                 # Notifications Enabled
                 $gridArgumentLine += " -NoticeSelfEnable=true"
+                # Lets add the messages too
+                if ($($serverConfig["BaseServerConfig"]["NoticeEnterServer"])) {
+                    $gridArgumentLine += " -NoticeEnterServer=`"$($serverConfig["BaseServerConfig"]["NoticeEnterServer"])`" "
+                }
+                if ($($serverConfig["BaseServerConfig"]["NoticeLeaveServer"])) {
+                    $gridArgumentLine += " -NoticeLeaveServer=`"$($serverConfig["BaseServerConfig"]["NoticeLeaveServer"])`" "
+                }
             }
             # Enter/Exit Server notifications:
             if ($($serverConfig["BaseServerConfig"]["NoticeAllEnable"]) -eq "1") {
@@ -711,6 +719,7 @@ function StartCluster {
             }
             # Something weird happened here. if NoticeSelfEnterServer is blank in the config, for some reason it just feeds the next argument
             # as the Enter Server notice. So we are just going to do a fun check now. 
+            # This is the MOTD
             if ($($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])) {
                 $gridArgumentLine += " -NoticeSelfEnterServer=`"$($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])`" "
             }
@@ -724,7 +733,7 @@ function StartCluster {
             $gridArgumentLine += $generalizedArguments
             # Add Custom Arguments
             if ($($serverConfig["CustomServerConfig"])) {
-                $gridArgumentLine += $customArguments
+                $gridArgumentLine += " $($customArguments)"
             }
             # Determine if the server is PVP or PVE and append the appropriate arguments
             if ($($sceneServer["ScenePVPType"]) -eq "1") { # PVE
@@ -1136,6 +1145,36 @@ function ReportTime {
     Write-Host "Next Ban Check Time: $($banCheckTime)"
 }
 
+function CalculateNextRestartTime {
+    param (
+        [string]$restartAtSpecificTime,
+        [int]$restartTimeHours
+    )
+
+    $currentDate = Get-Date
+    if ($restartAtSpecificTime -ne "") {
+        # Have to parse the $restartAtSpecificHours string
+        $restartTimeParts = $restartAtSpecificTime -split ":"
+        $restartHour = [int]$restartTimeParts[0]
+        $restartMinute = [int]$restartTimeParts[1]
+        # 24 hour format.
+        $todayRestart = Get-Date -Hour $restartHour -Minute $restartMinute -Second 0
+
+        if ($todayRestart -lt $currentDate) {
+            # If timer has passed, do it tomorrow
+            $nextRestartTime = $todayRestart.AddDays(1)
+        } else {
+            # Do it today
+            $nextRestartTime = $todayRestart
+        }
+    } else {
+        # if $restartSpecificTime is blank, then use the hourly timer. 
+        $nextRestartTime = $currentDate.AddHours($restartTimeHours)
+    }
+
+    return $nextRestartTime
+}
+
 # We Don't want the auto process starting if you are using the script to add or remove a ban
 if (!($option -eq "*ban*")) {
     # This is the auto-process loop. 
@@ -1148,7 +1187,7 @@ if (!($option -eq "*ban*")) {
         $rebootTimeString = (Get-Date).AddHours($restartTime).ToString('MM/dd/yyyy HH:mm:ss')
         $updateCheckTimeString = (Get-Date).AddMinutes(30).ToString('MM/dd/yyyy HH:mm:ss')
         $banCheckTimeString = (Get-Date).AddMinutes(10).ToString('MM/dd/yyyy HH:mm:ss')
-        $rebootTime = [DateTime]::ParseExact($rebootTimeString, 'MM/dd/yyyy HH:mm:ss', $null)
+        $rebootTime = CalculateNextRestartTime -restartAtSpecificTime $restartSpecificTime -restartTimeHours $restartTime
         $updateCheckTime = [DateTime]::ParseExact($updateCheckTimeString, 'MM/dd/yyyy HH:mm:ss', $null)
         $banCheckTime = [DateTime]::ParseExact($banCheckTimeString, 'MM/dd/yyyy HH:mm:ss', $null)
         ReportTime -rebootTime $rebootTime -updateCheckTime $updateCheckTime -banChecktime $banCheckTime
