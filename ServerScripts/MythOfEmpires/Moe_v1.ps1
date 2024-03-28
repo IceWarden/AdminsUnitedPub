@@ -1235,7 +1235,7 @@ if (!($option -eq "*ban*")) {
 
                 # Reset the reboot timer
                 $rebootTimeString = (Get-Date).AddHours($restartTime).ToString('MM/dd/yyyy HH:mm:ss')
-                $rebootTime = [DateTime]::ParseExact($rebootTimeString, 'MM/dd/yyyy HH:mm:ss', $null)
+                $rebootTime = CalculateNextRestartTime -restartAtSpecificTime $restartSpecificTime -restartTimeHours $restartTime
                 ReportTime -rebootTime $rebootTime -updateCheckTime $updateCheckTime -banCheckTime $banCheckTime
                 $warningSent = $false
             }
