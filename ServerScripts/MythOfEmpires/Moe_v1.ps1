@@ -36,10 +36,14 @@ app.listen(port, () => {
 # Do not edit anything in this script unless you know what you are doing, any customizations will not be supported unless I like you or you buy me cookies
 
 <# HOW DO THE AUTO SYSTEMS WORK?
-IF $autoprocess is set "True" then the script will start its auto-looping system, Inside this loop it will check for $autoUpdate, $autoReboot and $autoUnban
-IF $autoUpdate is set "True" then the auto-loop will check every 30 minutes for a dedicated server update. If its set false, it will not check at all.
-IF $autoReboot is set "True" then the auto-loop will auto reboot the server, either based on the $restartTime (in hours) or a specific time set in $restartSpecificTime
-if $autoUnban is set "True" then the auto-loop will use the Ban/Unban features built in the script. 
+    IF $autoprocess is set "True" then the script will start its auto-looping system, Inside this loop it will check for $autoUpdate, $autoReboot and $autoUnban
+    IF $autoUpdate is set "True" then the auto-loop will check every 30 minutes for a dedicated server update. If its set false, it will not check at all.
+    IF $autoReboot is set "True" then the auto-loop will auto reboot the server, either based on the $restartTime (in hours) or a specific time set in $restartSpecificTime
+    if $autoUnban is set "True" then the auto-loop will use the Ban/Unban features built in the script. 
+#>
+
+<# HOW DO MODS WORK??
+    - The Mod portion will read from the ServerParamConfig_All.ini that your matrix tool generates!
 #>
 
 # EDIT THESE BELOW #
@@ -136,6 +140,41 @@ function Parse-IniFile {
     return $parsedData
 }
 
+## Function to check the mods file and download/update mods
+function UpdateMod {
+    param($modID,$modPath,$steamCMDFolder)
+    $steamModAppID = "1371580"
+    $steamcmdExec = $steamcmdFolder+"\steamcmd.exe"
+    $uri = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/"
+    $modParams = @{"itemcount"="1"}
+    $modParams += @{"publishedfileids[0]"=$modID}
+
+    $response = Invoke-WebRequest -uri $uri -method 'post' -body $Params
+    $parsedData = $response.Content | ConvertFrom-Json
+    Foreach ($item in $parsedData.response.publishedfileDetails) {
+        $modTime = $item.time_updated
+        $unixDate = Get-Date "1/1/1970"
+        $updatedTime = $unixDate.AddSeconds($modTime).ToLocalTime()
+        $testString = "{0} Last Updated: {1}" -f $item.title,$updatedTime
+        #write-host $testString
+
+        $modChildPath = "steamapps\workshop\content\$steamModAppID"
+        $modTruePath = Join-path $modPath $modChildPath
+        $modInfo = Get-ChildItem $modTruePath | Where-Object {$_.Name -like $item.publishedfileid}
+        If (!(Test-Path "$modTruePath\$($item.publishedfileid)")) {
+            # Mod doesn't exist, download
+            & $steamcmdExec +force_Install_dir $modPath +login Anonymous +workshop_download_item $steamModAppID $modID +quit
+        } ElseIf ($modInfo.LastWriteTime -lt $updatedTime) {
+            # There was an update.
+            $updateDetected = $True
+            $updateString += "{0} was updated at {1}" -f $item.title,$updatedTime
+            Write-Host $updateString
+            # Download the mod
+            & $steamcmdExec +force_Install_dir $modPath +login Anonymous +workshop_download_item $steamModAppID $modID +quit
+        }
+    }
+}
+
 ## DO NOT TOUCH ##
 # Path Configuration
 $gamePath = Join-Path $serverPath "MOE\Binaries\Win64\MOEServer.exe"
@@ -143,11 +182,17 @@ $clusterTools = Join-Path $serverPath "MatrixServerTool"
 $optPath = Join-Path $clusterTools "game-opt-sys.exe"
 $chatPath = Join-Path $clusterTools "game-chat-service.exe"
 $ServerIni = Join-path $serverPath "configs\ServerParamConfig_All.ini"
+$modPath = Join-Path $serverPath "mods"
 $pidPath = Join-path $serverPath "pids"
+$steamAppID="1794810"
 # Checking that they exist
 if (!(Test-Path $pidPath)) {
     # Need this for tracking the server Process IDs
     mkdir $pidPath
+}
+if (!(Test-Path $modPath)) {
+    # Need this for tracking the server Process IDs
+    mkdir $modPath
 }
 if (!(Test-Path $gamePath)) {
     throw "Missing Game Files at $gamePath - Make Sure to install MoE Lol"
@@ -241,7 +286,7 @@ function ShutdownCluster {
 # Function to start the entire cluster
 # super crazy
 function StartCluster {
-    param($gamePath,$chatPath,$optPath,$serverConfig,$pidPath,$scriptPath,$serverPath)
+    param($gamePath,$chatPath,$optPath,$serverConfig,$pidPath,$scriptPath,$serverPath,$steamCMDFolder,$modPath)
 
     # Lets clean up the log files, there's too many of them:
     # There's 2 logging directories. Until we can figure out what the logging argument is for chat server/opt server
@@ -290,6 +335,23 @@ function StartCluster {
         }
     }
     
+    # Check for Workshop Mods
+    If ($serverConfig.ContainsKey('SteamModList')) {
+        # Mods exist in server config
+        Write-Host "Mods Exist, checking update!"
+        $modStartupLine = "-SteamModList="
+        Foreach ($key in $serverConfig['SteamModList'].Keys) {
+            if ($serverConfig['SteamModList'][$key] -eq "1") {
+                # Mod is enabled
+                Write-Host "Checking Mod ID: $key"
+                updateMod -modID $key -modPath $modPath -steamCMDFolder $steamCMDFolder
+                $modStartupLine += "$($modPath)\steamapps\workshop\content\1371580\$($key)+"
+            }
+        }
+        # Remove any trailing + characcters
+        $modStartupLine = $modStartupLine.TrimEnd('+')
+    }
+
     # Step 1 - Launch Database Servers
     ## Public Data Server
     # Build Argument Line for PubServer
@@ -405,11 +467,12 @@ function StartCluster {
     "-OptEnable=1 -OptAddr=$($serverConfig["AroundServerInfo"]["OptToolAddr"]) -OptPort=$($serverConfig["AroundServerInfo"]["GatewayPort"]) " + `
     "-MaxPlayers=$($serverConfig["BaseServerConfig"]["MaxPlayers"]) " + `
     "-MapDifficultyRate=1 -UseACE -EnableVACBan=1"
-
+    # Fix for Self Notice Enable
     if ($($serverConfig["BaseServerConfig"]["NoticeSelfEnable"]) -eq "1") {
         # Notifications Enabled
         $lobbyArgumentLine += " -NoticeSelfEnable=true"
     }
+    # Fix for lobby Password
     if ($($serverConfig["LobbyServerInfo"]["LobbyPassword"])) {
         $lobbyArgumentLine += " -PrivateServerPassword=$($serverConfig["LobbyServerInfo"]["LobbyPassword"])"
     }
@@ -417,11 +480,15 @@ function StartCluster {
     if ($($serverConfig["BaseServerConfig"]["Description"])) {
         $lobbyArgumentLine += " -Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" "
     }
-
+    # CHeck for MYSQL Setting
     if ($enableMySQL -like "true") {
         $lobbyArgumentLine += " -mmo_storeserver_type=Mysql " + ` 
         "-mmo_storeserver_role_connstr=`"Provider=MYSQLDB;SslMode=None;Password=$($serverConfig["DatabaseConfig"]["RoleDatabasePassword"]);User ID=$($serverConfig["DatabaseConfig"]["RoleDatabaseUserName"]);Initial Catalog=$($serverConfig["DatabaseConfig"]["RoleDatabaseCatalog"]);Data Source=$($serverConfig["DatabaseConfig"]["RoleDatabaseAddr"]):$($serverConfig["DatabaseConfig"]["RoleDatabasePort"])`" " + `
         "-mmo_storeserver_public_connstr=`"Provider=MYSQLDB;SslMode=None;Password=$($serverConfig["DatabaseConfig"]["PublicDatabasePassword"]);User ID=$($serverConfig["DatabaseConfig"]["PublicDatabaseUserName"]);Initial Catalog=$($serverConfig["DatabaseConfig"]["PublicDatabaseCatalog"]);Data Source=$($serverConfig["DatabaseConfig"]["PublicDatabaseAddr"]):$($serverConfig["DatabaseConfig"]["PublicDatabasePort"])`""
+    }
+    # Check for Mods
+    If ($modStartupLine) {
+        $lobbyArgumentLine += " $modStartupLine"
     }
     # Start the Lobby Service with the game executable path
     $serverCheck = $null
@@ -754,6 +821,10 @@ function StartCluster {
             } else { # PVP
                 $gridArgumentLine += $pvpArguments
             }
+            # Check for Mods
+            if ($modStartupLine) {
+                $gridArgumentLine += " $modStartupLine"
+            }
             $serverCheck = $null
             $sceneAppID = $null
             $scenePIDPath = Join-Path $pidPath "$($sceneServer["SceneID"]).pid"
@@ -808,12 +879,9 @@ function StartCluster {
             if (!($battleMap -like "CountyTown_Main")) {
                 $battlefieldArgumentLine += " -ActivityServer=True"
             }
-            <# DONT NEED THIS JUNK
-            # Same thing for Description
-            if ($($serverConfig["BaseServerConfig"]["Description"])) {
-                $battlefieldArgumentLine += "-Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" "
+            if ($modStartupLine){
+                $battlefieldArgumentLine += " $modStartupLine"
             }
-            #>
             $serverCheck = $null
             $battlefieldPIDPath = Join-Path $pidPath "bf-$($battleServer["BattleID"]).pid"
             if (Test-Path $battlefieldPIDPath) {
@@ -833,8 +901,8 @@ function StartCluster {
 } # End Start Cluster -> What a doozy whew
 
 function CheckUpdate {
-    param ($serverPath,$steamcmdFolder,$pidPath,$serverConfig)
-    $steamAppID="1794810"
+    param ($serverPath,$steamcmdFolder,$pidPath,$serverConfig,$steamAppID)
+    
     # Without clearing cache app_info_update may return old informations!
     $clearCache=1
     $dataPath = Join-Path $serverPath "updatedata"
@@ -1083,10 +1151,13 @@ If (!($PSScriptRoot)) {
 Switch ($option) {
     "StartCluster" {
         If (!($PSScriptRoot)) {
-            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+
             moe-readBans -serverConfig $serverConfig
         } Else {
-            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
             moe-readBans -serverConfig $serverConfig
         }
         
@@ -1099,23 +1170,27 @@ Switch ($option) {
     "RestartCluster" {
         ShutdownCluster -serverConfig $serverConfig -pidPath $pidPath
         If (!($PSScriptRoot)) {
-            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
         } Else {
-            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+            StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
         }
         break
     }
     "UpdateCluster" {
-        $updated = CheckUpdate -serverPath $serverPath -steamcmdFolder $steamCMDPath -pidPath $pidPath -serverConfig $serverConfig
+        $updated = CheckUpdate -serverPath $serverPath -steamcmdFolder $steamCMDPath -pidPath $pidPath -serverConfig $serverConfig -steamAppID $steamAppID
         Start-Sleep -s 5
         # We should be ok to start the cluster, since we are saving and checking PIDs, if there's no update
         # then the servers will still be running therefore the PIDs will be true and not execute!
         if ($updated -like "*True*") {
             If (!($PSScriptRoot)) {
-                StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+                StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                 moe-readBans -serverConfig $serverConfig
             } Else {
-                StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+                StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                 moe-readBans -serverConfig $serverConfig
             }
             break
@@ -1240,13 +1315,17 @@ if (!($option -eq "*ban*")) {
                 # Running the startCluster function twice because lobby server keeps crashing
                 # this is temporary till i have time to find a solution
                 if (-not $PSScriptRoot) {
-                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                     Start-Sleep -s 30
-                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                 } else {
-                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                     Start-Sleep -s 30
-                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+                    StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                 }
 
                 # Reset the reboot timer
@@ -1258,7 +1337,7 @@ if (!($option -eq "*ban*")) {
 
             # Check for update time
             if ($currentDate -gt $updateCheckTime -and $autoUpdate -like "True") {
-                $updated = CheckUpdate -serverPath $serverPath -steamcmdFolder $steamCMDPath -pidPath $pidPath -serverConfig $serverConfig
+                $updated = CheckUpdate -serverPath $serverPath -steamcmdFolder $steamCMDPath -pidPath $pidPath -serverConfig $serverConfig -steamAppID $steamAppID
 
                 Start-Sleep -Seconds 5
 
@@ -1271,13 +1350,17 @@ if (!($option -eq "*ban*")) {
                         Exit 1
                     }
                     if (-not $PSScriptRoot) {
-                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                         Start-Sleep -s 30
-                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath
+                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                     } else {
-                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                         Start-Sleep -s 30
-                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath
+                        StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
+                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
                     }
                 }
                 # Reset update check time
