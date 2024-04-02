@@ -66,6 +66,9 @@ To use the script, you'll need to configure it with your server's specific detai
 - `$enableDiscord`: Enables Discord functions for sending notifications. Requires a Discord bot setup (`"true"` or `"false"`).
 - `$discordSecret`: The secret token for your Discord bot, required if `$enableDiscord` is `"true"`.
 - `$autoprocess`: Enables the script to automatically perform restarts and updates based on a schedule (`"true"` or `"false"`).
+- `$autoReboot`: Enables the script to automatically restart the server based on `$restartTime` or `$restartSpecificTime` (`"true"` or `"false"`).
+- `$autoUpdate`: Enables the script to automatically check for updates every 30 minutes (`"true"` or `"false"`).
+- `$autoUnban`: Enables the script to auto-unban users based on the timespan sent during the ban process (`"true"` or `"false"`).
 - `$restartTime`: The time in hours when the server should automatically reboot (e.g., `"8"` for every 8 hours).
 - `$restartSpecificTime`: 24-hour format string to reboot at a specific time daily. Overrides $restartTime. Ex. 13:30 would be 1:30 PM
 - `$steamID`: The SteamID to ban when using the script for ban management.
@@ -97,5 +100,5 @@ To use the script, you'll need to configure it with your server's specific detai
 
 ### Ban a user
 ```powershell
-.\move_v1.ps1 -option AddBan -SteamID <STEAMID> -timeSpan <MINUTES> -banReason <REASON>
+.\move_v1.ps1 -option AddBan -SteamID <STEAMID> -timeSpan <MINUTES> -banReason <REASON> -autoProcess "False"
 ```
