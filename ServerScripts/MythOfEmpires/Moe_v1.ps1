@@ -35,8 +35,16 @@ app.listen(port, () => {
 
 # Do not edit anything in this script unless you know what you are doing, any customizations will not be supported unless I like you or you buy me cookies
 
+<# HOW DO THE AUTO SYSTEMS WORK?
+IF $autoprocess is set "True" then the script will start its auto-looping system, Inside this loop it will check for $autoUpdate, $autoReboot and $autoUnban
+IF $autoUpdate is set "True" then the auto-loop will check every 30 minutes for a dedicated server update. If its set false, it will not check at all.
+IF $autoReboot is set "True" then the auto-loop will auto reboot the server, either based on the $restartTime (in hours) or a specific time set in $restartSpecificTime
+if $autoUnban is set "True" then the auto-loop will use the Ban/Unban features built in the script. 
+#>
+
 # EDIT THESE BELOW #
 Param (
+## SERVER CONFIGURATION
     $serverPath = "",           # Path to your server install (Whatever your used for SteamCMD) Ex. C:\servers\moe
     $steamCMDPath = "",         # Path to SteamCMD; Ex. C:\scripts\steamcmd
     $rconPath = "",             # This is for RCON automation. Ex C:\scripts\mcrcon\mcrcon.exe
@@ -46,12 +54,17 @@ Param (
     $clusterID = 8888,          # Leave this as default. Only change if you are running multiple clusters.
     $option = "",               # StartCluster, ShutdownCluster,RestartCluster,UpdateCluster,Help
     $enableMySQL = "true",      # Turn on MYSQL Access -> Do this is you used MariaDB
+## DISCORD CONFIGURATION (Only use if you have a JSCRIPT Discord Bot)
     $enableDiscord = "false",   # Turn on Discord Functions. See Requirements at top
     $discordSecret = "",        # Required for Discord Functions
+## AUTO SYSTEMS. 
     $autoprocess = "true",      # Enables loop for auto-restarts and updates
+    $autoUpdate = "true",       # Enables the auto-update features
+    $autoReboot = "true",       # Enables the auto-reboot features.
+    $autoUnban = "true",        # Enables the auto Unban Feature. 
     $restartTime = "8",         # Time in Hours to reboot the server.
     $restartSpecificTime = "",  # Restart daily at specific time. 24-hour format HH:mm 
-    ## BANNING PARAMETERS
+## BANNING PARAMETERS
     $steamID = "",              # SteamID to Ban
     $timeSpan = "",             # Time in Minutes to Ban for
     $banreason = ""             # Reason for banning
@@ -1198,17 +1211,20 @@ if (!($option -eq "*ban*")) {
             $warningTime = $rebootTime.AddMinutes(-5)
 
             # Check if it's time to send the pre-reboot warning
-            if ($currentDate -ge $warningTime -and $currentDate -lt $rebootTime -and -not $warningSent) {
-                if ($enableDiscord -eq "true") {
-                    # Send a pre-reboot warning to Discord
-                    messageDiscord -message "MoE Cluster rebooting in 5 minutes." -secret $discordSecret
-                    $warningSent = $true
+            if ($autoReboot -like "True") {
+                if ($currentDate -ge $warningTime -and $currentDate -lt $rebootTime -and -not $warningSent) {
+                    if ($enableDiscord -eq "true") {
+                        # Send a pre-reboot warning to Discord
+                        messageDiscord -message "MoE Cluster rebooting in 5 minutes." -secret $discordSecret
+                        $warningSent = $true
+                    }
+                    
                 }
-                
             }
+            
 
             # Check for reboot time
-            if ($currentDate -gt $rebootTime) {
+            if ($currentDate -gt $rebootTime -and $autoReboot -like "True") {
                 if ($enabledDiscord -eq "true") { 
                     messageDiscord -message "MoE Cluster is rebooting now!" -secret $discordSecret
                 }
@@ -1241,7 +1257,7 @@ if (!($option -eq "*ban*")) {
             }
 
             # Check for update time
-            if ($currentDate -gt $updateCheckTime) {
+            if ($currentDate -gt $updateCheckTime -and $autoUpdate -like "True") {
                 $updated = CheckUpdate -serverPath $serverPath -steamcmdFolder $steamCMDPath -pidPath $pidPath -serverConfig $serverConfig
 
                 Start-Sleep -Seconds 5
@@ -1270,13 +1286,18 @@ if (!($option -eq "*ban*")) {
                 ReportTime -rebootTime $rebootTime -updateCheckTime $updateCheckTime -banCheckTime $banCheckTime
             }
             # Check for Bans
-            if ($currentDate -gt $banCheckTime) {
+            if ($currentDate -gt $banCheckTime -and $autoUnban -like "True") {
                 # Execute ban/unban process
                 moe-readBans -serverConfig $serverConfig
                 # Reset ban check time
                 $banCheckTimeString = (Get-Date).AddMinutes(10).ToString('MM/dd/yyyy HH:mm:ss')
                 $banCheckTime = [DateTime]::ParseExact($banCheckTimeString, 'MM/dd/yyyy HH:mm:ss', $null)
                 ReportTime -rebootTime $rebootTime -updateCheckTime $updateCheckTime -banChecktime $banCheckTime
+            }
+            if ($autoReboot -like "False" -and $autoUpdate -like "False" -and $autoUnban -like "False") {
+                # If for some reason $autoProcess is true but all the auto-systems are disabled, just exit the loop
+                Write-Host "Auto-Process was enabled but all auto systems are disabled!! Exiting the auto-process loop."
+                Exit 0
             }        
         } while ($true)
     }
