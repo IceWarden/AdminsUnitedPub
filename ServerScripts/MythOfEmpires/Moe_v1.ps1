@@ -918,9 +918,14 @@ function StartCluster {
             # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
             if ($($serverConfig["BaseServerConfig"]["bCanPVESpawnResource"]) -like "0") {
                 $battlefieldArgumentLine += " -bCanPVESpawnResource=false"
-            }  
+            }
+            # Check to see if Battle Server Map is not CountyTown_Main  
             if (!($battleMap -like "CountyTown_Main")) {
                 $battlefieldArgumentLine += " -ActivityServer=True"
+            }
+            # Added check for new "ForceOnFairBattle" setting
+            if ($battleServer["ForceOnFairBattle"] -like "true") {
+                $battlefieldArgumentLine += " -CheatActivityMap=$($battleServer["FairBattleMap"])"
             }
             if ($modStartupLine){
                 $battlefieldArgumentLine += " $modStartupLine"
