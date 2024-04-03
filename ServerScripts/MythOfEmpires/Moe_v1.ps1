@@ -149,7 +149,7 @@ function UpdateMod {
     $modParams = @{"itemcount"="1"}
     $modParams += @{"publishedfileids[0]"=$modID}
 
-    $response = Invoke-WebRequest -uri $uri -method 'post' -body $Params
+    $response = Invoke-WebRequest -uri $uri -method 'post' -body $modParams
     $parsedData = $response.Content | ConvertFrom-Json
     Foreach ($item in $parsedData.response.publishedfileDetails) {
         $modTime = $item.time_updated
@@ -160,6 +160,9 @@ function UpdateMod {
 
         $modChildPath = "steamapps\workshop\content\$steamModAppID"
         $modTruePath = Join-path $modPath $modChildPath
+        if (!(Test-path $modTruePath)) {
+            mkdir $modTruePath -Force
+        }
         $modInfo = Get-ChildItem $modTruePath | Where-Object {$_.Name -like $item.publishedfileid}
         If (!(Test-Path "$modTruePath\$($item.publishedfileid)")) {
             # Mod doesn't exist, download
@@ -344,7 +347,7 @@ function StartCluster {
             if ($serverConfig['SteamModList'][$key] -eq "1") {
                 # Mod is enabled
                 Write-Host "Checking Mod ID: $key"
-                updateMod -modID $key -modPath $modPath -steamCMDFolder $steamCMDFolder
+                updateMod -modID $key -modPath $modPath -steamCMDFolder $steamCMDPath
                 $modStartupLine += "$($modPath)\steamapps\workshop\content\1371580\$($key)+"
             }
         }
@@ -1152,12 +1155,12 @@ Switch ($option) {
     "StartCluster" {
         If (!($PSScriptRoot)) {
             StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
 
             moe-readBans -serverConfig $serverConfig
         } Else {
             StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
             moe-readBans -serverConfig $serverConfig
         }
         
@@ -1171,10 +1174,10 @@ Switch ($option) {
         ShutdownCluster -serverConfig $serverConfig -pidPath $pidPath
         If (!($PSScriptRoot)) {
             StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+            -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
         } Else {
             StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+            -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
         }
         break
     }
@@ -1186,11 +1189,11 @@ Switch ($option) {
         if ($updated -like "*True*") {
             If (!($PSScriptRoot)) {
                 StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                 moe-readBans -serverConfig $serverConfig
             } Else {
                 StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                 moe-readBans -serverConfig $serverConfig
             }
             break
@@ -1316,16 +1319,16 @@ if (!($option -eq "*ban*")) {
                 # this is temporary till i have time to find a solution
                 if (-not $PSScriptRoot) {
                     StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                     Start-Sleep -s 30
                     StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                    -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                 } else {
                     StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                     Start-Sleep -s 30
                     StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                    -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                 }
 
                 # Reset the reboot timer
@@ -1351,16 +1354,16 @@ if (!($option -eq "*ban*")) {
                     }
                     if (-not $PSScriptRoot) {
                         StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                         Start-Sleep -s 30
                         StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                        -pidPath $pidPath -scriptPath $scriptPath -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                     } else {
                         StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                         Start-Sleep -s 30
                         StartCluster -gamePath $gamePath -chatPath $chatPath -optPath $optPath -serverConfig $serverConfig `
-                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDFolder -modPath $modPath
+                        -pidPath $pidPath -scriptPath $PSScriptRoot -serverPath $serverPath -steamCMDFolder $steamCMDPath -modPath $modPath
                     }
                 }
                 # Reset update check time
