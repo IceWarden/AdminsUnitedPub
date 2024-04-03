@@ -836,12 +836,12 @@ function StartCluster {
             if ($($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])) {
                 $gridArgumentLine += " -NoticeSelfEnterServer=`"$($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])`" "
             }
-            <# DONT NEED THIS
-            # Same thing for Description
-            if ($($serverConfig["BaseServerConfig"]["Description"])) {
-                $gridArgumentLine += " -Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" "
+            # Drop Items on Death
+            if ($($serverConfig["BaseServerConfig"]["bDeathOnlyReduceDurable"]) -eq "0") {
+                $gridArgumentLine += " -bDeathOnlyReduceDurable=false"
+            } else {
+                $gridArgumentLine += " -bDeathOnlyReduceDurable=true"
             }
-            #> 
             # Append generalized arguments
             $gridArgumentLine += $generalizedArguments
             # Add Custom Arguments
