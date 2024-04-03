@@ -922,6 +922,8 @@ function StartCluster {
             # Check to see if Battle Server Map is not CountyTown_Main  
             if (!($battleMap -like "CountyTown_Main")) {
                 $battlefieldArgumentLine += " -ActivityServer=True"
+            } else {
+                $battlefieldArgumentLine += " -DataStore"
             }
             # Added check for new "ForceOnFairBattle" setting
             if ($battleServer["ForceOnFairBattle"] -like "true") {
