@@ -17,6 +17,8 @@ XCJinPaiMemberCountLimit=1              ; guild member requirement for county/pr
 FubenCoolDownMultiplier=1.0             ; treasure map cooldown. Lower number = faster cooldown.
 bEnableConfigVariationChance=true       ; enables horse mutations
 SeasonHonorPoint=1                      ; Has something to do with seasonal points we think
+FishPondGrowTimeMul=0.2                  ; Fish Pond Grow Time?
+FishPondBreedTimeMul=0.2                ; Fish Pond Breed time?
 ; All have something to do with Server transfering
 TransportCDAddMulDiff=1
 TransportCDAddMul=1
