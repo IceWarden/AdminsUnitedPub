@@ -379,6 +379,16 @@ function StartCluster {
         # Notifications Enabled
         $pubServerArgumentLine += " -NoticeSelfEnable=true"
     }
+    # bCanCrossServerDiffPVPType by default is "True" according to the tool, so we only care if its not true.
+    # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+    if ($($serverConfig["BaseServerConfig"]["bCanCrossServerDiffPVPType"]) -like "0") {
+        $pubServerArgumentLine += " -bCanCrossServerDiffPVPType=false"
+    }
+    # bCanPVESpawnResource by default is "True" according to the Matrix Tool, so we only care if its not true.
+    # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+    if ($($serverConfig["BaseServerConfig"]["bCanPVESpawnResource"]) -like "0") {
+        $pubServerArgumentLine += " -bCanPVESpawnResource=false"
+    } 
     # Start the Pub Server Control
     $serverCheck = $null
     $pubAppID = $null
@@ -489,6 +499,16 @@ function StartCluster {
         "-mmo_storeserver_role_connstr=`"Provider=MYSQLDB;SslMode=None;Password=$($serverConfig["DatabaseConfig"]["RoleDatabasePassword"]);User ID=$($serverConfig["DatabaseConfig"]["RoleDatabaseUserName"]);Initial Catalog=$($serverConfig["DatabaseConfig"]["RoleDatabaseCatalog"]);Data Source=$($serverConfig["DatabaseConfig"]["RoleDatabaseAddr"]):$($serverConfig["DatabaseConfig"]["RoleDatabasePort"])`" " + `
         "-mmo_storeserver_public_connstr=`"Provider=MYSQLDB;SslMode=None;Password=$($serverConfig["DatabaseConfig"]["PublicDatabasePassword"]);User ID=$($serverConfig["DatabaseConfig"]["PublicDatabaseUserName"]);Initial Catalog=$($serverConfig["DatabaseConfig"]["PublicDatabaseCatalog"]);Data Source=$($serverConfig["DatabaseConfig"]["PublicDatabaseAddr"]):$($serverConfig["DatabaseConfig"]["PublicDatabasePort"])`""
     }
+    # bCanCrossServerDiffPVPType by default is "True" according to the tool, so we only care if its not true.
+    # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+    if ($($serverConfig["BaseServerConfig"]["bCanCrossServerDiffPVPType"]) -like "0") {
+        $lobbyArgumentLine += " -bCanCrossServerDiffPVPType=false"
+    }
+    # bCanPVESpawnResource by default is "True" according to the Matrix Tool, so we only care if its not true.
+    # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+    if ($($serverConfig["BaseServerConfig"]["bCanPVESpawnResource"]) -like "0") {
+        $lobbyArgumentLine += " -bCanPVESpawnResource=false"
+    } 
     # Check for Mods
     If ($modStartupLine) {
         $lobbyArgumentLine += " $modStartupLine"
@@ -796,6 +816,16 @@ function StartCluster {
                     $gridArgumentLine += " -NoticeLeaveServer=`"$($serverConfig["BaseServerConfig"]["NoticeLeaveServer"])`" "
                 }
             }
+            # bCanCrossServerDiffPVPType by default is "True" according to the tool, so we only care if its not true.
+            # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+            if ($($serverConfig["BaseServerConfig"]["bCanCrossServerDiffPVPType"]) -like "0") {
+                $gridArgumentLine += " -bCanCrossServerDiffPVPType=false"
+            }
+            # bCanPVESpawnResource by default is "True" according to the Matrix Tool, so we only care if its not true.
+            # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+            if ($($serverConfig["BaseServerConfig"]["bCanPVESpawnResource"]) -like "0") {
+                $gridArgumentLine += " -bCanPVESpawnResource=false"
+            }  
             # Enter/Exit Server notifications:
             if ($($serverConfig["BaseServerConfig"]["NoticeAllEnable"]) -eq "1") {
                 $gridArgumentLine += " -NoticeAllEnable=true"
@@ -879,6 +909,16 @@ function StartCluster {
             if ($($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])) {
                 $battlefieldArgumentLine += " -NoticeSelfEnterServer=`"$($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])`" "
             }
+            # bCanCrossServerDiffPVPType by default is "True" according to the tool, so we only care if its not true.
+            # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+            if ($($serverConfig["BaseServerConfig"]["bCanCrossServerDiffPVPType"]) -like "0") {
+                $battlefieldArgumentLine += " -bCanCrossServerDiffPVPType=false"
+            }
+            # bCanPVESpawnResource by default is "True" according to the Matrix Tool, so we only care if its not true.
+            # this is another one of those, its 1 or 0 in the config, but True or False in the argument line. 
+            if ($($serverConfig["BaseServerConfig"]["bCanPVESpawnResource"]) -like "0") {
+                $battlefieldArgumentLine += " -bCanPVESpawnResource=false"
+            }  
             if (!($battleMap -like "CountyTown_Main")) {
                 $battlefieldArgumentLine += " -ActivityServer=True"
             }
