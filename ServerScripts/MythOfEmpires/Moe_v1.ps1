@@ -890,7 +890,7 @@ function StartCluster {
             "-ChatClientAddress=$($serverConfig["AroundServerInfo"]["ChatClientAddr"]) -ChatClientPort=$($serverConfig["AroundServerInfo"]["ChatClientPort"]) " + `
             "-OptEnable=1 -OptAddr=$($serverConfig["AroundServerInfo"]["OptToolAddr"]) -OptPort=$($serverConfig["AroundServerInfo"]["GatewayPort"]) " + `
             "-Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" -NoticeSelfEnable=$($serverConfig["BaseServerConfig"]["NoticeSelfEnable"]) " + `
-            "-NoticeSelfEnterServer=`"$($serverConfig["BaseServerConfig"]["NoticeSelfEnterServer"])`" -MapDifficultyRate=$($serverConfig["BaseServerConfig"]["MapDifficultyRate"]) " + `
+            "-MapDifficultyRate=$($serverConfig["BaseServerConfig"]["MapDifficultyRate"]) " + `
             "-UseACE=$($serverConfig["BaseServerConfig"]["UseACE"]) -EnableVACBan=$($serverConfig["BaseServerConfig"]["EnableVACBan"]) " + `
             "-bUseServerAdmin=$($serverConfig["BaseServerConfig"]["bUseServerAdmin"]) -ServerAdminAccounts=$($serverConfig["BaseServerConfig"]["ServerAdminAccounts"]) " + ` 
             "-NoticeAllEnable=$($serverConfig["BaseServerConfig"]["NoticeAllEnable"]) -MoveSeatLoadMultiplier=$($serverConfig["BaseServerConfig"]["MoveSeatLoadMultiplier"]) " + `
