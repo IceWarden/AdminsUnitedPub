@@ -880,7 +880,7 @@ function StartCluster {
             $battleMap = $($battleServer["BattleMap"] -replace '^\d+_', '')
             $battlefieldArgumentLine = "$($battlemap) -game -server -ClusterId=$($clusterID) " + `
             "-log -StartBattleService -StartPubData -BigPrivateServer -DistrictId=1 -EnableParallelTickFunction -DisablePhysXSimulation " + `
-            "-LOCALLOGTIMES -corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth -ActivityServer=true " + `
+            "-LOCALLOGTIMES -corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth " + `
             "-MultiHome=$($battleServer["BattleInnerAddr"]) -OutAddress=$($battleServer["BattleOuterAddr"]) -Port=$($battleServer["BattleGamePort"]) " + `
             "-QueryPort=$($battleServer["BattleQueryPort"]) -ShutDownServicePort=$($battleServer["BattleClosePort"]) -ShutDownServiceIP=$($battleServer["BattleRemoteAddr"]) -ShutDownServiceKey=$($battleServer["BattleRemotePassword"]) " + `
             "-MaxPlayers=$($battleServer["BattleMaxPlayers"]) -SessionName=battle$($battleServer["BattleID"]) -ServerId=$($battleServer["BattleID"]) log=BattleServer_$($battleServer["BattleID"]).log " + `
