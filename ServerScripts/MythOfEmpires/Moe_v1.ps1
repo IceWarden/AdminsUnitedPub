@@ -274,10 +274,11 @@ function ShutdownCluster {
         }
     }
     # Save/Shutdown Lobby and Pub
-    rcon -p $serverConfig["LobbyServerInfo"]["LobbyRemotePassword"] -P $serverConfig["LobbyServerInfo"]["LobbyClosePort"] -H $serverConfig["LobbyServerInfo"]["LobbyRemoteAddr"] -s "saveworld"
-    rcon -p $serverConfig["LobbyServerInfo"]["LobbyRemotePassword"] -P $serverConfig["LobbyServerInfo"]["LobbyClosePort"] -H $serverConfig["LobbyServerInfo"]["LobbyRemoteAddr"] -s "ShutDownServer"
     rcon -p $serverConfig["PubDataServerInfo"]["PubDataRemotePassword"] -P $serverConfig["PubDataServerInfo"]["PubDataClosePort"] -H $serverConfig["PubDataServerInfo"]["PubDataRemoteAddr"] -s "saveworld"
     rcon -p $serverConfig["PubDataServerInfo"]["PubDataRemotePassword"] -P $serverConfig["PubDataServerInfo"]["PubDataClosePort"] -H $serverConfig["PubDataServerInfo"]["PubDataRemoteAddr"] -s "ShutDownServer"
+    Start-Sleep -s 30
+    rcon -p $serverConfig["LobbyServerInfo"]["LobbyRemotePassword"] -P $serverConfig["LobbyServerInfo"]["LobbyClosePort"] -H $serverConfig["LobbyServerInfo"]["LobbyRemoteAddr"] -s "saveworld"
+    rcon -p $serverConfig["LobbyServerInfo"]["LobbyRemotePassword"] -P $serverConfig["LobbyServerInfo"]["LobbyClosePort"] -H $serverConfig["LobbyServerInfo"]["LobbyRemoteAddr"] -s "ShutDownServer"
     # We will use the PIDs to shutdown everything else
     $pidFiles = Get-ChildItem $pidPath 
     Foreach ($item in $pidFiles) {
