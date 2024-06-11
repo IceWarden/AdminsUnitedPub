@@ -1,0 +1,2 @@
+instanceid,owner,name,port,queryport,telnetport,type,savedir,clanmembers,adminpass
+1,EXAMPLE,[EX] EXAMPLE SERVER NAME,27077,27015,18888,0,ServerSaveName,10,SimplePass123
