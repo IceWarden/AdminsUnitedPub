@@ -57,7 +57,7 @@ Param (
     $publicIP = "",             # This is your Public IP, Use IPCHICKEN.COM
     $clusterID = 8888,          # Leave this as default. Only change if you are running multiple clusters.
     $option = "",               # StartCluster, ShutdownCluster,RestartCluster,UpdateCluster,Help
-    $enableMySQL = "true",      # Turn on MYSQL Access -> Do this is you used MariaDB
+    $enableMySQL = "true",      # Turn on MYSQL Access -> Do this if you used MariaDB
 ## DISCORD CONFIGURATION (Only use if you have a JSCRIPT Discord Bot)
     $enableDiscord = "false",   # Turn on Discord Functions. See Requirements at top
     $discordSecret = "",        # Required for Discord Functions
@@ -254,6 +254,7 @@ function ShutdownCluster {
             # -c Command
             Write-Host "Saving World $($sceneServer["SceneID"])"
             rcon -p $sceneServer["SceneRemotePassword"] -P $sceneServer["SceneClosePort"] -H $sceneServer["SceneRemoteAddr"] -s "saveworld"
+            rcon -p $sceneServer["SceneRemotePassword"] -P $sceneServer["SceneClosePort"] -H $sceneServer["SceneRemoteAddr"] -s "BroadcastNotifySysInfo `"Server Shutting Down Now!`" 5 1"
             Start-Sleep -s 30
             rcon -p $sceneServer["SceneRemotePassword"] -P $sceneServer["SceneClosePort"] -H $sceneServer["SceneRemoteAddr"] -s "ShutDownServer"
         }
@@ -269,6 +270,7 @@ function ShutdownCluster {
             # -c Command
             Write-Host "Saving World $($battleServer["BattleID"])"
             rcon -p $battleServer["BattleRemotePassword"] -P $battleServer["BattleClosePort"] -H $battleServer["BattleRemoteAddr"] -s "saveworld"
+            rcon -p $sceneServer["SceneRemotePassword"] -P $sceneServer["SceneClosePort"] -H $sceneServer["SceneRemoteAddr"] -s "BroadcastNotifySysInfo `"Server Shutting Down Now!`" 5 1"
             Start-Sleep -s 30
             rcon -p $battleServer["BattleRemotePassword"] -P $battleServer["BattleClosePort"] -H $battleServer["BattleRemoteAddr"] -s "ShutDownServer"
         }
@@ -362,7 +364,7 @@ function StartCluster {
     ## DO NOT TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING ##
     $pubServerArgumentLine = "Map_Public -game -server -ClusterId=$($clusterID) -DataStore -log -StartBattleService -StartPubData " + `
     "-BigPrivateServer -DistrictId=1 -LOCALLOGTIMES -NetServerMaxTickRate=1000 -HangDuration=300 -core " + `
-    "-NotCheckServerSteamAuth -MultiHome=$($privateIP) -OutAddress=$($publicIP) -Port=$($serverConfig["PubDataServerInfo"]["PubDataGamePort"]) " + `
+    "-NotCheckServerSteamAuth -EnableNPAC=0 -MultiHome=$($privateIP) -OutAddress=$($publicIP) -Port=$($serverConfig["PubDataServerInfo"]["PubDataGamePort"]) " + `
     "-QueryPort=$($serverConfig["PubDataServerInfo"]["PubDataQueryPort"]) -ShutDownServicePort=$($serverConfig["PubDataServerInfo"]["PubDataClosePort"]) " + `
     "-ShutDownServiceIP=$($serverConfig["PubDataServerInfo"]["PubDataRemoteAddr"]) -ShutDownServiceKey=$($serverConfig["PubDataServerInfo"]["PubDataRemotePassword"]) " + ` 
     "-SessionName=PubDataServer_90000 -ServerId=$($serverConfig["PubDataServerInfo"]["PubDataServerID"]) log=PubDataServer_90000.log " + `
@@ -465,7 +467,7 @@ function StartCluster {
     # Build Argument Line for LobbyService
     ## DO NOT TOUCH UNLESS YOU KNOW WHAT YOU'RE DOING ##
     $lobbyArgumentLine = "Map_Lobby -game -server -ClusterId=$($clusterID) -DataStore -log -StartBattleService -StartPubData " + `
-    "-BigPrivateServer -LaunchMMOServer -DistrictId=1 -LOCALLOGTIMES -core -NetServerMaxTickRate=100 -HangDuration=300 -NotCheckServerSteamAuth " + `
+    "-BigPrivateServer -LaunchMMOServer -DistrictId=1 -LOCALLOGTIMES -core -NetServerMaxTickRate=100 -HangDuration=300 -NotCheckServerSteamAuth -EnableNPAC=0 " + `
     "-LobbyPort=$($serverConfig["LobbyServerInfo"]["LobbyPort"]) -MultiHome=$($privateIP) " + `
     "-OutAddress=$($publicIP) -Port=$($serverConfig["LobbyServerInfo"]["LobbyGamePort"]) -QueryPort=$($serverConfig["LobbyServerInfo"]["LobbyQueryPort"]) " + `
     "-ShutDownServicePort=$($serverConfig["LobbyServerInfo"]["LobbyClosePort"]) -ShutDownServiceIP=$($serverConfig["LobbyServerInfo"]["LobbyRemoteAddr"]) " + `
@@ -787,7 +789,7 @@ function StartCluster {
             # Construct the base argument line for each grid
             $gridArgumentLine = "$($sceneServer["SceneMap"]) -game -server -ClusterId=$clusterID -DataStore " + `
             "-log -StartBattleService -StartPubData -BigPrivateServer -DistrictId=1 -EnableParallelTickFunction -DisablePhysXSimulation -LOCALLOGTIMES " + `
-            "-corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth -ServerAdminAccounts=$($serverConfig["BaseServerConfig"]["ServerAdminAccounts"]) " + `
+            "-corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth -EnableNPAC=0 -ServerAdminAccounts=$($serverConfig["BaseServerConfig"]["ServerAdminAccounts"]) " + `
             "-CityId=$($sceneServer["SceneCityID"]) -XianchengId=$($sceneServer["SceneXianchengID"]) " + ` 
             "-GameServerPVPType=$($sceneServer["ScenePVPType"]) -MultiHome=$($privateIP) -OutAddress=$($publicIP) " + `
             "-Port=$($sceneServer["SceneGamePort"]) -QueryPort=$($sceneServer["SceneQueryPort"]) -ShutDownServicePort=$($sceneServer["SceneClosePort"]) " + `
@@ -881,7 +883,7 @@ function StartCluster {
             $battleMap = $($battleServer["BattleMap"] -replace '^\d+_', '')
             $battlefieldArgumentLine = "$($battlemap) -game -server -ClusterId=$($clusterID) " + `
             "-log -StartBattleService -StartPubData -BigPrivateServer -DistrictId=1 -EnableParallelTickFunction -DisablePhysXSimulation " + `
-            "-LOCALLOGTIMES -corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth " + `
+            "-LOCALLOGTIMES -corelimit=5 -core -HangDuration=300 -NotCheckServerSteamAuth -EnableNPAC=0 " + `
             "-MultiHome=$($battleServer["BattleInnerAddr"]) -OutAddress=$($battleServer["BattleOuterAddr"]) -Port=$($battleServer["BattleGamePort"]) " + `
             "-QueryPort=$($battleServer["BattleQueryPort"]) -ShutDownServicePort=$($battleServer["BattleClosePort"]) -ShutDownServiceIP=$($battleServer["BattleRemoteAddr"]) -ShutDownServiceKey=$($battleServer["BattleRemotePassword"]) " + `
             "-MaxPlayers=$($battleServer["BattleMaxPlayers"]) -SessionName=battle$($battleServer["BattleID"]) -ServerId=$($battleServer["BattleID"]) log=BattleServer_$($battleServer["BattleID"]).log " + `
@@ -892,7 +894,7 @@ function StartCluster {
             "-OptEnable=1 -OptAddr=$($serverConfig["AroundServerInfo"]["OptToolAddr"]) -OptPort=$($serverConfig["AroundServerInfo"]["GatewayPort"]) " + `
             "-Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" -NoticeSelfEnable=$($serverConfig["BaseServerConfig"]["NoticeSelfEnable"]) " + `
             "-MapDifficultyRate=$($serverConfig["BaseServerConfig"]["MapDifficultyRate"]) " + `
-            "-UseACE=$($serverConfig["BaseServerConfig"]["UseACE"]) -EnableVACBan=$($serverConfig["BaseServerConfig"]["EnableVACBan"]) " + `
+            "-UseACE -EnableVACBan=$($serverConfig["BaseServerConfig"]["EnableVACBan"]) " + `
             "-bUseServerAdmin=$($serverConfig["BaseServerConfig"]["bUseServerAdmin"]) -ServerAdminAccounts=$($serverConfig["BaseServerConfig"]["ServerAdminAccounts"]) " + ` 
             "-NoticeAllEnable=$($serverConfig["BaseServerConfig"]["NoticeAllEnable"]) -MoveSeatLoadMultiplier=$($serverConfig["BaseServerConfig"]["MoveSeatLoadMultiplier"]) " + `
             "-TameAnimalLoadMultiplier=$($serverConfig["BaseServerConfig"]["TameAnimalLoadMultiplier"]) -NUM_AllHorseMax=$($serverConfig["BaseServerConfig"]["NUM_AllHorseMax"]) " + `
@@ -993,8 +995,24 @@ function CheckUpdate {
             Write-Host "Installed build: $installedVersion - available build: $availableVersion"
             if ($enableDiscord -eq "true") {
                 messageDiscord -message "MoE Cluster rebooting for update in 5 minutes." -secret $discordSecret
-                Start-Sleep -s 500
             }
+
+            # WE CAN SEND MESSAGES NOW!!
+            Foreach ($key in $serverConfig.Keys) {
+                if ($key -match "^SceneServerList_\d+$") {
+                    $sceneServer = $serverConfig[$key]
+                    rcon -p $sceneServer["SceneRemotePassword"] -P $sceneServer["SceneClosePort"] -H $sceneServer["SceneRemoteAddr"] -s "BroadcastNotifySysInfo `"Server Rebooting For Update in 5 Minutes!`" 5 1"
+                }
+            }
+            # Save/Shutdown Battlefield Servers
+            Foreach ($key in $serverConfig.Keys) {
+                if ($key -match "^BattleServerList_\d+$") {
+                    $battleServer = $serverConfig[$key]
+                    rcon -p $battleServer["BattleRemotePassword"] -P $battleServer["BattleClosePort"] -H $battleServer["BattleRemoteAddr"] -s "BroadcastNotifySysInfo `"Server Rebooting For Update in 5 Minutes!`" 5 1"
+                }
+            }
+            # Sleep for 5 minutes
+            Start-Sleep -s 300
             # Grab the PID Files
             $pidFiles = Get-ChildItem $pidPath
             if (!($pidFiles.Count -le 1)) {
@@ -1056,8 +1074,8 @@ function moe-readBans {
     $dllPath = "C:\scripts\ExternalUtilities\MySql.Data.dll"
     if (!(test-path $dllPath)) {
         # DLL missing
-        Write-HOst "MySQL.Data.DLL Missing, cant connect to database.."
-        return
+        Write-Host "MySQL.Data.DLL Missing, cant connect to database.."
+        break
     }
 
     # Import the DLL
