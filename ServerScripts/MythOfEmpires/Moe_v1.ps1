@@ -734,7 +734,19 @@ function StartCluster {
     -OccupyStructureLimitNum=$($serverConfig["BaseServerConfig"]["OccupyStructureLimitNum"]) `
     -PVEOnlySelfGuildPickUpDeathPackage=$($serverConfig["BaseServerConfig"]["PVEOnlySelfGuildPickUpDeathPackage"]) `
     -OccupySellTotalMultiplier=$($serverConfig["BaseServerConfig"]["OccupySellTotalMultiplier"]) `
-    -OccupySellNumMultiplier=$($serverConfig["BaseServerConfig"]["OccupySellNumMultiplier"]) "
+    -OccupySellNumMultiplier=$($serverConfig["BaseServerConfig"]["OccupySellNumMultiplier"]) `
+    -ButterflyDropMul=$($serverConfig["BaseServerConfig"]["ButterflyDropMul"]) `
+    -CrossServerCDTime=$($serverConfig["BaseServerConfig"]["CrossServerCDTime"]) `
+    -CrossServerCDTimeDiff=$($serverConfig["BaseServerConfig"]["CrossServerCDTimeDiff"]) `
+    -CrossServerNewPlayerCDTime=$($serverConfig["BaseServerConfig"]["CrossServerNewPlayerCDTime"]) `
+    -CrossServerNewPlayerCDTimeDiff=$($serverConfig["BaseServerConfig"]["CrossServerNewPlayerCDTimeDiff"]) `
+    -DownLoadUnitParam=$($serverConfig["BaseServerConfig"]["DownLoadUnitParam"]) `
+    -TransportAdditionParamDiff=$($serverConfig["BaseServerConfig"]["TransportAdditionParamDiff"]) `
+    -BabyAnimalGrowthRateMultiplier=$($serverConfig["BaseServerConfig"]["BabyAnimalGrowthRateMultiplier"]) `
+    -TameAnimalPregnancySpeedMultiplier=$($serverConfig["BaseServerConfig"]["TameAnimalPregnancySpeedMultiplier"]) ` 
+    -OccupySellNumMultiplier=$($serverConfig["BaseServerConfig"]["OccupySellNumMultiplier"]) `
+    -TaxRevenueMultiplier=$($serverConfig["BaseServerConfig"]["TaxRevenueMultiplier"]) `
+    -XCJinPaiMemberCountLimit=$($serverConfig["BaseServerConfig"]["XCJinPaiMemberCountLimit"]) "
 "@
 
 
@@ -802,7 +814,8 @@ function StartCluster {
             "-ChatClientAddress=$($serverConfig["AroundServerInfo"]["ChatClientAddr"]) -ChatClientPort=$($serverConfig["AroundServerInfo"]["ChatClientPort"]) " + `
             "-OptEnable=1 -OptAddr=$($serverConfig["AroundServerInfo"]["OptToolAddr"]) -OptPort=$($serverConfig["AroundServerInfo"]["GatewayPort"]) " + `
             "-MaxPlayers=$($sceneServer["SceneMaxPlayers"]) " + `
-            "-MapDifficultyRate=$($serverConfig["BaseServerConfig"]["MapDifficultyRate"]) -UseACE -EnableVACBan=1 "
+            "-MapDifficultyRate=$($serverConfig["BaseServerConfig"]["MapDifficultyRate"]) -UseACE -EnableVACBan=1 " + `
+            "-Description=`"$($serverConfig["BaseServerConfig"]["Description"])`" "
             
             if ($($serverConfig["BaseServerConfig"]["bEnableServerLevel"]) -eq "0") {
                 # Disable bEnableServerLevel
