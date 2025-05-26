@@ -7,14 +7,6 @@ param (
     $option = ""
 )
 
-$serverPath = Join-Path $serverRoot "WS\Binaries\Win64\WSServer-Win64-Shipping.exe"
-
-if (!(Test-Path $serverPath)) {
-    # Server isn't installed
-    Write-Host "SETUP YOUR SERVER FIRST!!"
-    exit 1
-}
-
 # Move DLLs if don't exist sigh
 $win64Files = GCI "$serverRoot\WS\Binaries\Win64"
 if (!($win64Files -like "*.dll")) {
@@ -92,80 +84,9 @@ function Send-TelnetCommand {
     }
 }
 
-# Function for checking update
-# the first time you execute this function it will think there is
-# an update. Moving forward however, you can use this to easily update your server
-# it will consider the path that your script is in to be the install path
-# since you should be sticking this script into the root of your game server anyway
-function CheckUpdate {
-    param ($serverPath,$steamcmdFolder,$serverInfo)
-    $steamAppID=$appID
-    # Without clearing cache app_info_update may return old informations!
-    $clearCache=1
-    if ($PSSCriptRoot -like "*servers\soulmask*") {
-        $dataPath = join-path $PSScriptRoot "updatedata"
-    } Else {
-        $dataPath = Join-Path $serverPath "updatedata"
-    }
-    $steamcmdExec = $steamcmdFolder+"\steamcmd.exe"
-    $steamcmdCache = $steamcmdFolder+"\appcache"
-    $latestAppInfo = $dataPath+"\latestappinfo.json"
-    $updateinprogress = $serverPath+"\updateinprogress.dat"
-    $latestAvailableUpdate = $dataPath+"\latestavailableupdate.txt"
-    $latestInstalledUpdate = $dataPath+"\latestinstalledupdate.txt"
-
-    If (Test-Path $updateinprogress) {
-    Write-Host Update is already in progress could be broke
-    } Else {
-        #Get-Date | Out-File $updateinprogress
-        Write-Host "Creating data Directory"
-        New-Item -Force -ItemType directory -Path $dataPath
-        If ($clearCache) {
-        Write-Host "Removing Cache Folder"
-        Remove-Item $steamcmdCache -Force -Recurse
-        }
-
-        Write-Host "Checking for an update for $($serverPath)"
-        & $steamcmdExec +login anonymous +app_info_update 1 +app_info_print $steamAppID +app_info_print $steamAppID +logoff +quit | Out-File $latestAppInfo
-        Get-Content $latestAppInfo -RAW | Select-String -pattern '(?m)"public"\s*\{\s*"buildid"\s*"\d{6,}"' -AllMatches | %{$_.matches[0].value} | Select-String -pattern '\d{6,}' -AllMatches | %{$_.matches} | %{$_.value} | Out-File $latestAvailableUpdate
-
-        If (Test-Path $latestInstalledUpdate) {
-            $installedVersion = Get-Content $latestInstalledUpdate
-        } Else {
-            $installedVersion = 0
-        }
-        
-        $availableVersion = Get-Content $latestAvailableUpdate
-        if ($installedVersion -ne $availableVersion) {
-            Write-Host "Update Available"
-            Write-Host "Installed build: $installedVersion - available build: $availableVersion"
-			
-			# Save and Shutdown Server Commands here
-			# Send RCON Announce to all servers
-			Foreach ($server in $serverInfo) {
-				$telnetPort = $server.telnetport
-                Send-TelnetCommand -port $telnetPort -command "exit"
-			}
-            Start-sleep -s 600
-            Write-host "Starting Update....This could take a few minutes..."
-            & $steamcmdExec +login anonymous +force_install_dir $serverPath +app_update $steamAppID validate +quit | Out-File $latestAppInfo
-            $availableVersion | Out-File $latestInstalledUpdate
-            Write-Host "Update Done!"
-            Foreach ($server in $serverInfo) {
-                Start-Server -server $server
-            }
-            #Remove-Item $updateinprogress -Force
-        } Else {
-            Write-Host 'No Update Available!'
-			if (Test-Path $updateinprogress) {
-				#Remove-Item $updateinprogress -Force
-			}
-        }
-    } 
-} # End Check Update
-
 function Start-Server {
-    param ($server)
+    param ($server,$serverRoot)
+    $serverPath = Join-Path $serverRoot "WS\Binaries\Win64\WSServer-Win64-Shipping.exe"
     $serverArguments = "Level01_Main -server %* -log -UTF8Output -MaxPlayers=100 -Multihome=$($ipaddr) -EchoPort=$($server.telnetport) -forcepassthrough -adminpsw=$($server.adminpass) " +
     "-backup=300 -initbackup -backupinterval=600 " +
     "-SteamServerName=`"$($server.name)`" -port=$($server.port) -queryport=$($server.queryport) -saveddirsuffix=$($server.savedir) -GonHuiMaxMember=$($server.clanmembers)"
@@ -200,11 +121,100 @@ function Start-Server {
     $process.id | Out-File $pidPath -Force
 }
 
+
+# Function for checking update
+# the first time you execute this function it will think there is
+# an update. Moving forward however, you can use this to easily update your server
+# it will consider the path that your script is in to be the install path
+# since you should be sticking this script into the root of your game server anyway
+function CheckUpdate {
+    param ($serverRoot,$steamcmdFolder,$serverInfo)
+    $steamAppID=$appID
+    # Without clearing cache app_info_update may return old informations!
+    $clearCache=1
+    if ($PSSCriptRoot -like "*servers\soulmask*") {
+        $dataPath = join-path $PSScriptRoot "updatedata"
+    } Else {
+        $dataPath = Join-Path $serverRoot "updatedata"
+    }
+    $steamcmdExec = $steamcmdFolder+"\steamcmd.exe"
+    $steamcmdCache = $steamcmdFolder+"\appcache"
+    $latestAppInfo = $dataPath+"\latestappinfo.json"
+    $updateinprogress = $serverRoot+"\updateinprogress.dat"
+    $latestAvailableUpdate = $dataPath+"\latestavailableupdate.txt"
+    $latestInstalledUpdate = $dataPath+"\latestinstalledupdate.txt"
+
+    If (Test-Path $updateinprogress) {
+    Write-Host Update is already in progress could be broke
+    } Else {
+        #Get-Date | Out-File $updateinprogress
+        Write-Host "Creating data Directory"
+        New-Item -Force -ItemType directory -Path $dataPath
+        If ($clearCache) {
+        Write-Host "Removing Cache Folder"
+        Remove-Item $steamcmdCache -Force -Recurse
+        }
+
+        Write-Host "Checking for an update for $($serverRoot)"
+        & $steamcmdExec +login anonymous +app_info_update 1 +app_info_print $steamAppID +app_info_print $steamAppID +logoff +quit | Out-File $latestAppInfo
+        Get-Content $latestAppInfo -RAW | Select-String -pattern '(?m)"public"\s*\{\s*"buildid"\s*"\d{6,}"' -AllMatches | %{$_.matches[0].value} | Select-String -pattern '\d{6,}' -AllMatches | %{$_.matches} | %{$_.value} | Out-File $latestAvailableUpdate
+
+        If (Test-Path $latestInstalledUpdate) {
+            $installedVersion = Get-Content $latestInstalledUpdate
+        } Else {
+            $installedVersion = 0
+        }
+        
+        $availableVersion = Get-Content $latestAvailableUpdate
+        if ($installedVersion -ne $availableVersion) {
+            Write-Host "Update Available"
+            Write-Host "Installed build: $installedVersion - available build: $availableVersion"
+			
+			# Save and Shutdown Server Commands here
+			# Send RCON Announce to all servers
+			Foreach ($server in $serverInfo) {
+				$telnetPort = $server.telnetport
+                $pidPath = Join-Path $serverRoot "WS\Saved_$($server.savedir)\server.pid"
+                
+                If (Test-Path $pidPath) {
+                    $processID = Get-Content $pidPath
+                    Try {
+                        $serverCheck = Get-Process -id $processID -ErrorAction Stop
+                        Send-TelnetCommand -port $telnetPort -command "exit"
+                        While (Get-Process -id $processID -ErrorAction SilentlyContinue) {
+                            Write-Host "Waiting for $serverPID to shutdown...."
+                            Start-Sleep -s 3
+                        }
+                    } Catch {
+                        # Server Isn't Running Proceed
+                        Continue
+                    }
+                }
+			}
+            
+            Write-host "Starting Update....This could take a few minutes..."
+            & $steamcmdExec +login anonymous +force_install_dir $serverRoot +app_update $steamAppID validate +quit | Out-File $latestAppInfo
+            $availableVersion | Out-File $latestInstalledUpdate
+            Write-Host "Update Done!"
+            Foreach ($server in $serverInfo) {
+                Start-Server -server $server -serverRoot $serverRoot
+            }
+            #Remove-Item $updateinprogress -Force
+        } Else {
+            Write-Host 'No Update Available!'
+			if (Test-Path $updateinprogress) {
+				#Remove-Item $updateinprogress -Force
+			}
+        }
+    } 
+} # End Check Update
+
+
 $csv = Import-Csv $csvFile
 Switch ($option) {
     "startServers" {
         foreach ($server in $csv) {
-            Start-Server -server $server
+            Start-Server -server $server -serverRoot $serverRoot
         }
     }
     "stopServers" {
@@ -214,6 +224,16 @@ Switch ($option) {
         }
     }
     "updateServers" {
-        checkUpdate -serverPath $serverRoot -steamCMDFolder $steamcmdPath -serverInfo $csv
+        checkUpdate -serverRoot $serverRoot -steamCMDFolder $steamcmdPath -serverInfo $csv
+    }
+    "restartServers" {
+        foreach ($server in $csv) {
+            $telnetPort = $server.telnetport
+            Send-TelnetCommand -port $telnetPort -command "exit"
+        }
+        Start-Sleep -s 600
+        foreach ($server in $csv) {
+            Start-Server -server $server
+        }
     }
 }

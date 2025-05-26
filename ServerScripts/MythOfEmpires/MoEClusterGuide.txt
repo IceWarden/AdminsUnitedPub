@@ -1,0 +1,115 @@
+MoE Cluster Server Configuration on Windows Server 2022:
+*Note: this guide should work fine for normal windows as well*
+
+## Server Prep ##
+# Things to Install/Download #
+- Powershell Core (https://github.com/PowerShell/PowerShell)
+- SteamCMD (https://developer.valvesoftware.com/wiki/SteamCMD)
+- Windows Subsystem for Linux
+- Ubuntu 20.04 (for the purpose of this tutorial)
+
+**Install WSL/Ubuntu**
+*We need a REDIS Instance but these can't be natively hosted on windows, so we need to install WSL.*
+- Make sure your system is up to date
+- open powershell core (Start->Run->pwsh)
+- type ``` Install-WindowsFeature -Name Microsoft-Windows-Subsystem-Linux -Restart ``` and hit enter (This will reboot your server)
+- open powershell core again and type ``` wsl --update ```
+- type ``` wsl --install -d Ubuntu-20.04 ```
+- Reboot server again
+- Now if you open start menu and type "Ubuntu" you should have an App show up. Launch it. This will finish the install of Ubuntu. Please follow the prompts, your ubuntu install on WSL is now completed. 
+
+**Install Redis**
+*https://redis.io/docs/install/install-redis/install-redis-on-windows/*
+- Launch Ubuntu App
+- Follow the instructions on the provided link.
+*I'll paste it here but please reference the url provided as this could change overtime*
+```
+curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+
+sudo apt-get update
+sudo apt-get install redis
+
+sudo service redis-server start
+```
+
+** Install Myth of Empires Dedicated Server **
+- Using Powershell and SteamCMD
+- & "C:\PATH\TO\STEAMCMD.exe" +force_install_dir "C:\PATH\TO\FOLDER" +login anonymous +app_update 1794810 validate +quit
+
+- Now On your client machine, browse to your MoE Client folder and run the Matrix Server tool and fill out all the fun information
+
+**Scene Server**
+- Server Map: East Mainland is the new map Dongzhou
+- City ID: This the Prefecture
+- XianchengID: This tells you where on the map the node is placed
+- PVP/PVE: Straight forward
+- SceneServerID: Unique ID for this server (default is 50000) (This has to change with each server)
+- SceneServer Inner Addr: This is your "Private IP" (Use IPCONFIG to get it)
+- SceneServer Outer Addr: This is your "Public IP" (Use IPCHICKEN.COM to get)
+- SceneServer Ports: These ports need to be opened through your router/firewalls. Defaults are 5010, 5020, 5030
+- SceneServer RemoteAddr: This is how to connect to RCON. Highly recommended to leave at 127.0.0.1 (so no one can connect from outside the server)
+- SceneServer RemotePassword: RCON Password
+- SceneServer MaxPlayers: Straight forward.
+- Hit Save Scene Server.
+- Change the ID +1 and hit ADD to create a second node in the cluster. Proceed to fill out the information. Make sure to not use the same ports
+
+**Battle Server**
+- This is the battle server. I never played officials so I dont know exactly how it works
+- BattleServer Map: Review the documentation by MoE on this section
+- BattleServer ID: Unique ID for the Server
+- BattleServer Inner Addr: Your Private IP
+- BattleServer Outer Addr: Your Public IP
+- BattleServer Ports: These ports need to be opened through your router/firewall. Defaults are 6010, 6020, 6030.
+- BattleServer RemoteAddr: This is how to connect to RCON. Recommended to leave at 127.0.0.1
+- BattleServer RemotePassword: RCON Password
+- BattleServer MaxPlayers: Self Explainatory
+
+**Lobby Server**
+- This is where everyone connects to your grid.
+- Lobby ServerID: Unique ID
+- Lobby Port: Unique Port, default is 7000
+- Lobby Password: Essentially a server password
+- LobbyServer InnerAddr: Your Private IP
+- LobbyServer OuterAddr: Your Public IP
+- LobbyServer Ports: These ports need to be opened through your router/firewalls. Defaults are 700, 7020, 7030, 7040
+- LobbyServer RemoteAddr: This is how to connect to RCON. Recommended to leave at 127.0.0.1
+- LobbyServer RemotePassword: RCON pass
+- LobbyServer MaxPlayers: Get it?
+
+**PubData Server**
+- No idea what this is but it seems to connect everything together
+- PubData ServerID: Unique Server ID
+- PubData Addr: Your Public IP
+- PubData Ports: These ports need to be opened through your router/firewalls. Defaults are 9000, 9010, 9020, 9030
+- PubDataServer RemoteAddr: This is how to connect to RCON. Recommended to leave at 127.0.0.1
+- PubDataServer RemotePassword: RCON pass
+
+**Peripheral Server**
+- This is all your connections
+- **Redis**
+- Redis Addr: If you did WSL to install redis this should be 127.0.0.1
+- Redis Prt: Port to redis (Default 6379)
+- Redis Password: Default is blank
+- **Chat**
+- ChatServer Addr: Your Private IP
+- ChatServer Port: Default is 8010
+- ChatClient Addr: Your Public IP
+- ChatClient port: Default is 8020
+- **DB Store Config**
+- DB Store Addr: Your Private IP (or 127.0.0.1)
+- DB Store Port: Default 8030
+- **Battle Manager**
+- BattleManager Addr: Your Private IP (or 127.0.0.1)
+- BattleManager Port: Default 8040
+- **OPT Tool**
+- Opt Addr: PUBLIC IP
+- Ports: Defaults 8050, 8060, 8070, 8080
+
+** Database Config **
+- For now don't use this. There's a weird TLS Issue with MySQL, you can leave this as is. 
+
+- Now go to Start Console -> Save Config
+- If you are using my powershell script, copy the "ServerParamConfig_All.ini" to <YOUR_SERVER_INSTALL>\configs
+- If you are not using my script, the tool would have generated a series of BAT files. You just need to copy these over to your server, update the path in them to your MOEServer.exe and then run each of them. 
